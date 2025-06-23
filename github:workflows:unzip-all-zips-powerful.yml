@@ -1,0 +1,42 @@
+name: "🗜️ Unzip All ZIPs & Clean Originals (Powerful Broad Version)"
+
+on:
+  push:
+    branches: ["**"]
+
+jobs:
+  unzip_all_and_clean:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push changes back to the repo
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Ensures all history for accurate pushes
+
+      - name: Unzip all zip files recursively and remove original zips
+        run: |
+          shopt -s globstar nullglob
+          count=0
+          for zip in **/*.zip; do
+            echo "Unzipping: $zip"
+            unzip -o "$zip" -d "$(dirname "$zip")"
+            rm -f "$zip"
+            count=$((count+1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "No zip files found."
+          fi
+
+      - name: Stage, commit and push changes if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Unzipped all zip files and deleted the originals [automated]"
+            git push
+          else
+            echo "No changes to commit."
+          fi
